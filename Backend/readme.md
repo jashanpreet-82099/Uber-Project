@@ -248,6 +248,137 @@ Provide the JWT in the `token` cookie or as a Bearer token:
 Authorization: Bearer <jwt-token>
 ```
 
+## Captain Routes
+
+### `POST /captain/register`
+
+Creates a new captain account, hashes the password, and returns an authentication token with the captain record.
+
+### Request
+
+Set the request header:
+
+```http
+Content-Type: application/json
+```
+
+Send the captain and vehicle data in the request body as JSON:
+
+```json
+{
+  "fullname": {
+    "firstname": "Jane",
+    "lastname": "Driver"
+  },
+  "email": "jane.driver@example.com",
+  "password": "secret123",
+  "vehicle": {
+    "color": "White",
+    "model": "Toyota Prius",
+    "plate": "ABC123",
+    "vehicleType": "car",
+    "capacity": 4
+  }
+}
+```
+
+### Request fields
+
+| Field | Type | Required | Requirements |
+| ----- | ---- | -------- | ------------ |
+| `fullname.firstname` | string | Yes | At least 3 characters |
+| `fullname.lastname` | string | No | If provided, at least 3 characters |
+| `email` | string | Yes | Must be a valid email address and unique |
+| `password` | string | Yes | At least 6 characters |
+| `vehicle.color` | string | Yes | At least 3 characters |
+| `vehicle.model` | string | Yes | At least 3 characters |
+| `vehicle.plate` | string | Yes | At least 3 characters |
+| `vehicle.vehicleType` | string | Yes | Must be `car`, `bike`, or `auto` |
+| `vehicle.capacity` | integer | Yes | At least 1 |
+
+The password is hashed before the captain is stored in the database.
+
+### Success response
+
+**Status:** `201 Created`
+
+```json
+{
+  "message": "Captain registered successfully",
+  "token": "<jwt-token>",
+  "captain": {
+    "_id": "<captain-id>",
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Driver"
+    },
+    "email": "jane.driver@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "model": "Toyota Prius",
+      "plate": "ABC123",
+      "vehicleType": "car",
+      "capacity": 4
+    }
+  }
+}
+```
+
+### Validation error
+
+**Status:** `400 Bad Request`
+
+Returned when a required field is missing or a field does not meet its validation rules.
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "van",
+      "msg": "Vehicle type must be car, bike or auto",
+      "path": "vehicle.vehicleType",
+      "location": "body"
+    }
+  ]
+}
+```
+
+### Duplicate email
+
+**Status:** `400 Bad Request`
+
+Returned when a captain already exists with the submitted email address.
+
+```json
+{
+  "message": "Captain with this email already exists."
+}
+```
+
+## Example using cURL
+
+```bash
+curl -X POST http://localhost:3000/captain/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Driver"
+    },
+    "email": "jane.driver@example.com",
+    "password": "secret123",
+    "vehicle": {
+      "color": "White",
+      "model": "Toyota Prius",
+      "plate": "ABC123",
+      "vehicleType": "car",
+      "capacity": 4
+    }
+  }'
+```
+
 ### Success response
 
 **Status:** `200 OK`
