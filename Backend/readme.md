@@ -252,7 +252,7 @@ Authorization: Bearer <jwt-token>
 
 ### `POST /captain/register`
 
-Creates a new captain account, hashes the password, and returns an authentication token with the captain record.
+Creates a new captain account, hashes the password, and returns an authentication token with the captain record. No authentication is required.
 
 ### Request
 
@@ -284,17 +284,17 @@ Send the captain and vehicle data in the request body as JSON:
 
 ### Request fields
 
-| Field | Type | Required | Requirements |
-| ----- | ---- | -------- | ------------ |
-| `fullname.firstname` | string | Yes | At least 3 characters |
-| `fullname.lastname` | string | No | If provided, at least 3 characters |
-| `email` | string | Yes | Must be a valid email address and unique |
-| `password` | string | Yes | At least 6 characters |
-| `vehicle.color` | string | Yes | At least 3 characters |
-| `vehicle.model` | string | Yes | At least 3 characters |
-| `vehicle.plate` | string | Yes | At least 3 characters |
-| `vehicle.vehicleType` | string | Yes | Must be `car`, `bike`, or `auto` |
-| `vehicle.capacity` | integer | Yes | At least 1 |
+| Field                 | Type    | Required | Requirements                             |
+| --------------------- | ------- | -------- | ---------------------------------------- |
+| `fullname.firstname`  | string  | Yes      | At least 3 characters                    |
+| `fullname.lastname`   | string  | Yes      | At least 3 characters                    |
+| `email`               | string  | Yes      | Must be a valid email address and unique |
+| `password`            | string  | Yes      | At least 6 characters                    |
+| `vehicle.color`       | string  | Yes      | At least 3 characters                    |
+| `vehicle.model`       | string  | Yes      | At least 3 characters                    |
+| `vehicle.plate`       | string  | Yes      | At least 3 characters                    |
+| `vehicle.vehicleType` | string  | Yes      | Must be `car`, `bike`, or `auto`         |
+| `vehicle.capacity`    | integer | Yes      | At least 1                               |
 
 The password is hashed before the captain is stored in the database.
 
@@ -379,13 +379,139 @@ curl -X POST http://localhost:3000/captain/register \
   }'
 ```
 
+### `POST /captain/login`
+
+Authenticates an existing captain and returns a JWT. The response also sets the `token` cookie.
+
+### Request
+
+```json
+{
+  "email": "jane.driver@example.com",
+  "password": "secret123"
+}
+```
+
+### Request fields
+
+| Field      | Type   | Required | Requirements                  |
+| ---------- | ------ | -------- | ----------------------------- |
+| `email`    | string | Yes      | Must be a valid email address |
+| `password` | string | Yes      | At least 6 characters         |
+
 ### Success response
 
 **Status:** `200 OK`
 
 ```json
 {
-  "message": "Logged out"
+  "token": "<jwt-token>",
+  "captain": {
+    "_id": "<captain-id>",
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Driver"
+    },
+    "email": "jane.driver@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "model": "Toyota Prius",
+      "plate": "ABC123",
+      "vehicleType": "car",
+      "capacity": 4
+    }
+  }
+}
+```
+
+### Validation error
+
+**Status:** `400 Bad Request`
+
+Returned when the email is invalid or the password is shorter than 6 characters.
+
+### Invalid credentials
+
+**Status:** `401 Unauthorized`
+
+Returned when the email is not registered or the password does not match.
+
+```json
+{
+  "message": "Invalid email or password"
+}
+```
+
+### Example using cURL
+
+```bash
+curl -X POST http://localhost:3000/captain/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "jane.driver@example.com",
+    "password": "secret123"
+  }'
+```
+
+### `GET /captain/profile`
+
+Returns the profile of the currently authenticated captain.
+
+### Authentication
+
+Provide the JWT in either the `token` cookie or an authorization header:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+### Success response
+
+**Status:** `200 OK`
+
+The response contains the captain record in a `captain` property.
+
+```json
+{
+  "captain": {
+    "_id": "<captain-id>",
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Driver"
+    },
+    "email": "jane.driver@example.com",
+    "status": "inactive",
+    "vehicle": {
+      "color": "White",
+      "model": "Toyota Prius",
+      "plate": "ABC123",
+      "vehicleType": "car",
+      "capacity": 4
+    }
+  }
+}
+```
+
+### `GET /captain/logout`
+
+Logs out the authenticated captain, clears the `token` cookie, and blacklists the JWT.
+
+### Authentication
+
+Provide the JWT in the `token` cookie or as a Bearer token:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+### Success response
+
+**Status:** `200 OK`
+
+```json
+{
+  "message": "logout successfully"
 }
 ```
 
@@ -393,7 +519,7 @@ curl -X POST http://localhost:3000/captain/register \
 
 **Status:** `401 Unauthorized`
 
-Returned when the token is missing, invalid, expired, or already blacklisted.
+Returned when the token is missing, invalid, expired, or already blacklisted. This applies to both `/captain/profile` and `/captain/logout`.
 
 ```json
 {
@@ -404,6 +530,6 @@ Returned when the token is missing, invalid, expired, or already blacklisted.
 ### Example using cURL
 
 ```bash
-curl http://localhost:3000/user/logout \
+curl http://localhost:3000/captain/logout \
   -H "Authorization: Bearer <jwt-token>"
 ```
